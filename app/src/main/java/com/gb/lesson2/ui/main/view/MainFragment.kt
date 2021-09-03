@@ -22,6 +22,8 @@ class MainFragment : Fragment() {
     private var _binding: MainFragmentBinding? = null
     private val binding get() = _binding!!
 
+    private lateinit var adapter: MainAdapter
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -35,13 +37,38 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        adapter = MainAdapter()
+        adapter.listener = MainAdapter.OnItemViewClickListener { weather ->
+            val manager = activity?.supportFragmentManager
+            if (manager != null) {
+                val bundle = Bundle()
+                bundle.putParcelable(DetailFragment.WEATHER_EXTRA, weather)
+                manager.beginTransaction()
+                    .replace(R.id.container, DetailFragment.newInstance(bundle))
+                    .addToBackStack("")
+                    .commit()
+            }
+        }
+
+        binding.recyclerview.adapter = adapter
+        binding.mainFragmentFAB.setOnClickListener {
+            viewModel.onLanguageChange()
+        }
+
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         viewModel.liveData.observe(viewLifecycleOwner, { state ->
             renderData(state)
         })
 
-        viewModel.getWeatherFromLocalSource()
+        viewModel.liveDataIsRus.observe(viewLifecycleOwner, { isRus ->
+            if (isRus) {
+                binding.mainFragmentFAB.setImageResource(R.drawable.ic_russia)
+            } else {
+                binding.mainFragmentFAB.setImageResource(R.drawable.ic_world)
+            }
+            viewModel.getWeatherFromLocalSource()
+        })
     }
 
     private fun renderData(state: AppState) {
@@ -49,15 +76,12 @@ class MainFragment : Fragment() {
             is AppState.Loading -> binding.loadingLayout.visibility = View.VISIBLE
             is AppState.Success -> {
                 binding.loadingLayout.visibility = View.GONE
-                binding.message.text = "${state.weather.city.name}" +
-                        "\n lat/lon ${state.weather.city.lat} ${state.weather.city.lon}" +
-                        "\n температура ${state.weather.temperature}" +
-                        "\n ощущается как ${state.weather.feelsLike}"
+                adapter.weatherData = state.weather
             }
             is AppState.Error -> {
                 binding.loadingLayout.visibility = View.GONE
                 Snackbar
-                    .make(binding.mainView, "Error: ${state.error}", Snackbar.LENGTH_INDEFINITE)
+                    .make(binding.mainFragmentFAB, "Error: ${state.error}", Snackbar.LENGTH_INDEFINITE)
                     .setAction("Reload") { viewModel.getWeatherFromLocalSource() }
                     .show()
             }
