@@ -1,18 +1,25 @@
 package com.gb.lib
 
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.random.Random
 
 fun main() {
-    val text: String = "1, 2, 5, 7, 10, 3, 5"
+    val array = arrayOf("1", "3", "2", "4")
+//    val isEven = fun(value: String): Boolean {
+//        return value.toInt() % 2 == 0
+//    }
 
-    println(
-        text.split(", ")
-            .filter { it.isNotBlank() }
-            .map { str -> str.toInt() }
-            .sum()
-    )
-}
+    val isEven: (String) -> Boolean = { text -> text.toInt() % 2 == 0 }
 
-interface Super {
-    fun fun1()
+    val evenArray = arrayOf(array.filter { isEven(it) })
+    //val evenArray = arrayOf(array.filter(::isEven))
+
+    println(evenArray.joinToString())
 }
+//
+//fun isEven(c: String): Boolean = c.toInt() % 2 == 0
+//
+
+
+

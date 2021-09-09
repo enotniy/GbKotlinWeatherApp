@@ -1,28 +1,21 @@
 package com.gb.lesson2.ui.main.view
 
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import com.gb.lesson2.R
 import com.gb.lesson2.databinding.DetailFragmentBinding
-import com.gb.lesson2.databinding.MainFragmentBinding
 import com.gb.lesson2.ui.main.model.Weather
-import com.gb.lesson2.ui.main.viewmodel.MainViewModel
-import com.gb.lesson2.ui.main.viewmodel.AppState
-import com.google.android.material.snackbar.Snackbar
 
 class DetailFragment : Fragment() {
 
     companion object {
         const val WEATHER_EXTRA = "WEATHER_EXTRA"
-        fun newInstance(bundle: Bundle): DetailFragment {
-            val fragment = DetailFragment()
-            fragment.arguments = bundle
-            return fragment
-        }
+        const val WEATHER_API_KEY = "46fe3a8c-5ac7-4650-8578-40ab8b2a1082"
+        fun newInstance(bundle: Bundle): DetailFragment =
+            DetailFragment().apply { arguments = bundle }
     }
 
     private var _binding: DetailFragmentBinding? = null
@@ -41,16 +34,18 @@ class DetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val weather = arguments?.getParcelable<Weather>(WEATHER_EXTRA)
-
-        if (weather != null) {
-            binding.message.text = "${weather.city.name}" +
-                    "\n lat/lon ${weather.city.lat} ${weather.city.lon}" +
-                    "\n температура ${weather.temperature}" +
-                    "\n ощущается как ${weather.feelsLike}"
+        arguments?.getParcelable<Weather>(WEATHER_EXTRA)?.let { weather ->
+            weather.city.also { city ->
+                binding.city.text = city.name
+                binding.lat.text = city.lat.toString()
+                binding.lon.text = city.lon.toString()
+            }
+            with(binding) {
+                temperature.text = weather.temperature.toString()
+                feelsLike.text = weather.feelsLike.toString()
+            }
         }
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
