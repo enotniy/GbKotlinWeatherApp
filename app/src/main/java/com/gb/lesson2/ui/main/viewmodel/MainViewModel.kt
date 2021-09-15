@@ -26,7 +26,6 @@ class MainViewModel : ViewModel() {
         liveDataToObserve.value = AppState.Loading
 
         Thread {
-            Thread.sleep(2000)
             liveDataToObserve.postValue(
                 AppState.Success(
                     if (liveDataIsRusToObserve.value == true) {

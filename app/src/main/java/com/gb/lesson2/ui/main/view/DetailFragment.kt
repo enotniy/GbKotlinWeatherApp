@@ -1,8 +1,11 @@
 package com.gb.lesson2.ui.main.view
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -10,19 +13,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
-import com.gb.lesson2.BuildConfig
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.gb.lesson2.R
 import com.gb.lesson2.databinding.DetailFragmentBinding
-import com.gb.lesson2.ui.main.model.City
-import com.gb.lesson2.ui.main.model.Weather
-import com.gb.lesson2.ui.main.model.WeatherDTO
-import com.gb.lesson2.ui.main.model.WeatherLoader
-import com.google.gson.Gson
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.URL
-import java.util.stream.Collectors
-import javax.net.ssl.HttpsURLConnection
+import com.gb.lesson2.ui.main.model.*
 
 class DetailFragment : Fragment() {
 
@@ -34,6 +28,41 @@ class DetailFragment : Fragment() {
 
     private var _binding: DetailFragmentBinding? = null
     private val binding get() = _binding!!
+
+    private val localResultBroadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+
+            Log.d("DEBUG", "onReceive message ${Thread.currentThread()}")
+
+            when (intent?.getStringExtra(RESULT_EXTRA)) {
+                SUCCESS_RESULT -> {
+                    intent.getParcelableExtra<WeatherDTO.FactDTO>(FACT_WEATHER_EXTRA)?.let {
+                        displayWeather(it)
+                    }
+                }
+                else -> {
+                    binding.mainView.showSnackBar("Error", "Try again", { view ->
+                    })
+                }
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        Log.d("DEBUG", "Register Receiver ${Thread.currentThread()}")
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(localResultBroadcastReceiver, IntentFilter(DETAILS_INTENT_FILTER))
+    }
+
+    override fun onDestroy() {
+        Log.d("DEBUG", "Unregister Receiver ${Thread.currentThread()}")
+
+        LocalBroadcastManager.getInstance(requireContext())
+            .unregisterReceiver(localResultBroadcastReceiver)
+        super.onDestroy()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,36 +82,55 @@ class DetailFragment : Fragment() {
             weather.city.also { city ->
                 binding.cityName.text = city.name
                 binding.cityCoordinates.text = "${city.lat} - ${city.lon}"
+
+                getWeather(city.lat, city.lon)
             }
 
-            WeatherLoader(
-                weather.city.lat,
-                weather.city.lon,
-                object : WeatherLoader.WeatherLoaderListener {
-                    override fun onLoaded(weatherDTO: WeatherDTO) {
-                        requireActivity().runOnUiThread {
-                            displayWeather(weatherDTO)
-                        }
-                    }
 
-                    override fun onFailed(throwable: Throwable) {
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(
-                                requireContext(),
-                                throwable.localizedMessage,
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                }).goToInternet()
+//            WeatherLoader(
+//                weather.city.lat,
+//                weather.city.lon,
+//                object : WeatherLoader.WeatherLoaderListener {
+//                    override fun onLoaded(weatherDTO: WeatherDTO) {
+//                        requireActivity().runOnUiThread {
+//                            displayWeather(weatherDTO.)
+//                        }
+//                    }
+//
+//                    override fun onFailed(throwable: Throwable) {
+//                        requireActivity().runOnUiThread {
+//                            Toast.makeText(
+//                                requireContext(),
+//                                throwable.localizedMessage,
+//                                Toast.LENGTH_LONG
+//                            ).show()
+//                        }
+//                    }
+//                }).goToInternet()
         }
     }
 
-    private fun displayWeather(weather: WeatherDTO) {
+    private fun getWeather(lat: Double, lon: Double) {
+        binding.mainView.hide()
+        binding.loadingLayout.show()
+
+        Log.d("DEBUG", "Start service ${Thread.currentThread()}")
+        requireActivity().startService(
+            Intent(requireContext(), MainService::class.java).apply {
+                putExtra(LATITUDE_EXTRA, lat)
+                putExtra(LONGITUDE_EXTRA, lon)
+            }
+        )
+    }
+
+    private fun displayWeather(fact: WeatherDTO.FactDTO) {
+        binding.mainView.show()
+        binding.loadingLayout.hide()
+
         with(binding) {
-            temperatureValue.text = weather.fact?.temp.toString()
-            feelsLikeValue.text = weather.fact?.feels_like.toString()
-            weatherCondition.text = weather.fact?.condition.toString()
+            temperatureValue.text = fact.temp.toString()
+            feelsLikeValue.text = fact.feels_like.toString()
+            weatherCondition.text = fact.condition.toString()
         }
     }
 
