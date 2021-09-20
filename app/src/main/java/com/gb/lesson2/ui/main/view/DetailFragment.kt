@@ -74,6 +74,8 @@ class DetailFragment : Fragment() {
                 binding.loadingLayout.hide()
                 val weather = state.weather.first();
 
+                viewModel.saveWeather(weather)
+
                 with(binding) {
                     imageView.load("https://freepngimg.com/thumb/city/36275-3-city-hd.png")
 
