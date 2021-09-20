@@ -2,12 +2,14 @@ package com.gb.lesson2.ui.main.model
 
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
+import java.util.concurrent.locks.Condition
 
 @Parcelize
 data class Weather(
     val city: City = getDefaultCity(),
     val temperature: Int = 0,
-    val feelsLike: Int = 0
+    val feelsLike: Int = 0,
+    val condition: String = ""
 ) : Parcelable
 
 fun getDefaultCity(): City = City("Москва", 55.755826, 37.617299900000035)

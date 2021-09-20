@@ -13,10 +13,18 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import coil.api.load
 import com.gb.lesson2.R
 import com.gb.lesson2.databinding.DetailFragmentBinding
 import com.gb.lesson2.ui.main.model.*
+import com.gb.lesson2.ui.main.viewmodel.AppState
+import com.gb.lesson2.ui.main.viewmodel.DetailViewModel
+import com.gb.lesson2.ui.main.viewmodel.MainViewModel
+import com.google.gson.Gson
+import okhttp3.*
+import java.io.IOException
 
 class DetailFragment : Fragment() {
 
@@ -26,43 +34,11 @@ class DetailFragment : Fragment() {
             DetailFragment().apply { arguments = bundle }
     }
 
+    private val viewModel: DetailViewModel by lazy {
+        ViewModelProvider(this).get(DetailViewModel::class.java)
+    }
     private var _binding: DetailFragmentBinding? = null
     private val binding get() = _binding!!
-
-    private val localResultBroadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-
-            Log.d("DEBUG", "onReceive message ${Thread.currentThread()}")
-
-            when (intent?.getStringExtra(RESULT_EXTRA)) {
-                SUCCESS_RESULT -> {
-                    intent.getParcelableExtra<WeatherDTO.FactDTO>(FACT_WEATHER_EXTRA)?.let {
-                        displayWeather(it)
-                    }
-                }
-                else -> {
-                    binding.mainView.showSnackBar("Error", "Try again", { view ->
-                    })
-                }
-            }
-        }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        Log.d("DEBUG", "Register Receiver ${Thread.currentThread()}")
-        LocalBroadcastManager.getInstance(requireContext())
-            .registerReceiver(localResultBroadcastReceiver, IntentFilter(DETAILS_INTENT_FILTER))
-    }
-
-    override fun onDestroy() {
-        Log.d("DEBUG", "Unregister Receiver ${Thread.currentThread()}")
-
-        LocalBroadcastManager.getInstance(requireContext())
-            .unregisterReceiver(localResultBroadcastReceiver)
-        super.onDestroy()
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,59 +54,45 @@ class DetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        arguments?.getParcelable<Weather>(WEATHER_EXTRA)?.let { weather ->
-            weather.city.also { city ->
-                binding.cityName.text = city.name
-                binding.cityCoordinates.text = "${city.lat} - ${city.lon}"
+        val weather = arguments?.getParcelable(WEATHER_EXTRA) ?: Weather()
 
-                getWeather(city.lat, city.lon)
-            }
-
-
-//            WeatherLoader(
-//                weather.city.lat,
-//                weather.city.lon,
-//                object : WeatherLoader.WeatherLoaderListener {
-//                    override fun onLoaded(weatherDTO: WeatherDTO) {
-//                        requireActivity().runOnUiThread {
-//                            displayWeather(weatherDTO.)
-//                        }
-//                    }
-//
-//                    override fun onFailed(throwable: Throwable) {
-//                        requireActivity().runOnUiThread {
-//                            Toast.makeText(
-//                                requireContext(),
-//                                throwable.localizedMessage,
-//                                Toast.LENGTH_LONG
-//                            ).show()
-//                        }
-//                    }
-//                }).goToInternet()
+        viewModel.liveData.observe(viewLifecycleOwner) { state ->
+            renderData(state)
         }
+
+        viewModel.getWeatherFromRemoteSource(weather)
     }
 
-    private fun getWeather(lat: Double, lon: Double) {
-        binding.mainView.hide()
-        binding.loadingLayout.show()
-
-        Log.d("DEBUG", "Start service ${Thread.currentThread()}")
-        requireActivity().startService(
-            Intent(requireContext(), MainService::class.java).apply {
-                putExtra(LATITUDE_EXTRA, lat)
-                putExtra(LONGITUDE_EXTRA, lon)
+    private fun renderData(state: AppState) {
+        when (state) {
+            is AppState.Loading -> {
+                binding.mainView.hide()
+                binding.loadingLayout.show()
             }
-        )
-    }
+            is AppState.Success -> {
+                binding.mainView.show()
+                binding.loadingLayout.hide()
+                val weather = state.weather.first();
 
-    private fun displayWeather(fact: WeatherDTO.FactDTO) {
-        binding.mainView.show()
-        binding.loadingLayout.hide()
+                with(binding) {
+                    imageView.load("https://freepngimg.com/thumb/city/36275-3-city-hd.png")
 
-        with(binding) {
-            temperatureValue.text = fact.temp.toString()
-            feelsLikeValue.text = fact.feels_like.toString()
-            weatherCondition.text = fact.condition.toString()
+                    temperatureValue.text = weather.temperature.toString()
+                    feelsLikeValue.text = weather.feelsLike.toString()
+                    weatherCondition.text = weather.condition
+
+                    cityName.text = weather.city.name
+                    cityCoordinates.text = "${weather.city.lat} ${weather.city.lon}"
+                }
+            }
+            is AppState.Error -> {
+                binding.loadingLayout.show()
+                binding.mainView.showSnackBar(
+                    "Error: ${state.error}",
+                    "Reload",
+                    { viewModel.getWeatherFromRemoteSource(Weather()) }
+                )
+            }
         }
     }
 
