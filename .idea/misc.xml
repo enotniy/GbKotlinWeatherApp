@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app-content-provider-client/src/main/res/layout/activity_main.xml" value="0.41041666666666665" />
         <entry key="app/src/main/res/drawable/ic_russia.xml" value="0.2604166666666667" />
         <entry key="app/src/main/res/layout/detail_fragment.xml" value="0.25" />
         <entry key="app/src/main/res/layout/fragment_details.xml" value="0.29635416666666664" />
