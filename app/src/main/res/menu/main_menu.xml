@@ -13,4 +13,17 @@
         android:icon="@drawable/ic_baseline_contacts_24"
         android:title="Contacts"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/getLocations"
+        android:icon="@drawable/ic_baseline_my_location_24"
+        android:title="Location"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/showMaps"
+        android:icon="@android:drawable/ic_dialog_map"
+        android:title="Location"
+        app:showAsAction="always" />
+
 </menu>

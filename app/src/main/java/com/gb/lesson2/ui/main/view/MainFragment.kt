@@ -1,5 +1,6 @@
 package com.gb.lesson2.ui.main.view
 
+import android.Manifest
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.util.Log
@@ -7,6 +8,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import com.gb.lesson2.R
 import com.gb.lesson2.databinding.MainFragmentBinding
 import com.gb.lesson2.ui.main.viewmodel.MainViewModel
