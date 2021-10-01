@@ -2,12 +2,16 @@ package com.gb.lesson2.ui.main.view
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.database.Cursor
+import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -17,9 +21,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import com.gb.lesson2.MapsFragment
 import com.gb.lesson2.R
 import com.gb.lesson2.databinding.MainActivityBinding
+import com.gb.lesson2.ui.main.model.MyFirebaseMessagingService
 import java.io.IOException
 
 private const val REFRESH_PERIOD = 60000L
@@ -173,12 +179,12 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.showMaps -> {
-                supportFragmentManager.apply {
-                    beginTransaction()
-                        .add(R.id.container, MapsFragment())
-                        .addToBackStack("")
-                        .commitAllowingStateLoss()
-                }
+                handleDataMessage(
+                    mapOf(
+                        "title" to "My title",
+                        "message" to "my message"
+                    )
+                )
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -215,4 +221,39 @@ class MainActivity : AppCompatActivity() {
             .show()
 
     }
+
+    private fun handleDataMessage(remoteMessageData: Map<String, String>) {
+        val title = remoteMessageData[MyFirebaseMessagingService.PUSH_KEY_TITLE]
+        val message = remoteMessageData[MyFirebaseMessagingService.PUSH_KEY_MESSAGE]
+
+        if (!title.isNullOrBlank() && !message.isNullOrBlank()) {
+
+            val notification = NotificationCompat.Builder(this,
+                MyFirebaseMessagingService.CHANNEL_ID
+            )
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(R.drawable.ic_baseline_message_24)
+                .setColor(Color.BLUE)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                notificationManager.createNotificationChannel(
+                    NotificationChannel(
+                        MyFirebaseMessagingService.CHANNEL_ID,
+                        "First Channel",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    ).apply {
+                        description = "Description"
+                    }
+                )
+            }
+
+            notificationManager.notify(MyFirebaseMessagingService.NOTIFICATION_ID, notification.build())
+        }
+    }
+
 }
